@@ -1,0 +1,14 @@
+vad_asr:
+  ros__parameters:
+    audio_topic: /agent/process_audio_output
+    output_topic: /emo_robot/agent/text_input
+    agent_status_topic: /emo_robot/agent/status
+    status_topic: /emo_robot/asr/status
+    asr_url: http://111.56.189.29:8765/v1/audio/transcriptions
+    request_timeout_s: 30.0
+    min_utterance_s: 0.25
+    max_utterance_s: 15.0
+    retry_count: 1
+    retry_interval_s: 0.5
+    post_agent_cooldown_s: 1.0
+    planner_guard_s: 20.0

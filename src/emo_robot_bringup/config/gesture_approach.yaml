@@ -1,0 +1,165 @@
+usb_camera:
+  ros__parameters:
+    device: /dev/video11
+    image_topic: /emo_robot/camera/image_raw
+    frame_id: usb_camera_optical_frame
+    width: 640
+    height: 480
+    fps: 30.0
+    pixel_format: YUYV
+    reconnect_interval_s: 2.0
+
+lidar_subscriber:
+  ros__parameters:
+    topic_type: both
+    pointcloud_topic: /aima/hal/sensor/lidar_chest_front/lidar_pointcloud
+    imu_topic: /aima/hal/sensor/lidar_chest_front/imu
+    log_interval_s: 1.0
+    publish_debug_image: true
+    debug_image_topic: /emo_robot/lidar/debug_image
+    debug_image_width: 640
+    debug_image_height: 480
+    debug_range_x_m: 4.0
+    debug_lateral_range_m: 3.0
+    debug_min_height_m: -1.0
+    debug_max_height_m: 1.5
+
+lidar_target_detector:
+  ros__parameters:
+    pointcloud_topic: /aima/hal/sensor/lidar_chest_front/lidar_pointcloud
+    target_topic: /emo_robot/perception/lidar_target
+    # Verified X2 chest LiDAR axes: x=forward, z=left, y=vertical.
+    forward_axis: "x"
+    lateral_axis: "z"
+    vertical_axis: "y"
+    forward_min_m: 0.4
+    forward_max_m: 20.0
+    vertical_min_m: -1.62
+    vertical_max_m: 0.38
+    lateral_abs_max_m: 4.0
+    lateral_bin_size_m: 0.10
+    cluster_half_width_m: 0.25
+    min_cluster_points: 50
+    smoothing_window: 5
+    # 首次选择最密集点云簇，后续优先跟踪位置连续的候选簇。
+    tracking_enabled: true
+    candidate_count: 5
+    track_min_cluster_points: 25
+    max_tracking_forward_jump_m: 1.0
+    max_tracking_lateral_jump_m: 0.8
+    max_tracking_angle_jump_deg: 18.0
+    lost_grace_frames: 10
+    publish_debug_image: true
+    debug_image_topic: /emo_robot/lidar/target_debug_image
+    debug_image_width: 640
+    debug_image_height: 480
+    debug_forward_range_m: 4.0
+    debug_lateral_range_m: 4.0
+
+gesture_detector:
+  ros__parameters:
+    image_topic: /emo_robot/camera/image_raw
+    model_backend: onnx
+    model_path: ""
+    tracker: botsort.yaml
+    yolo_conf: 0.3
+    yolo_iou: 0.6
+    yolo_imgsz: 640
+    # Require Jetson GPU; ONNX startup fails instead of falling back to CPU.
+    yolo_device: "0"
+    # Strict mode requires MediaPipe and suppresses uncertain hand surfaces.
+    hand_backend: mediapipe
+    hand_surface_mode: strict
+    track_state_timeout_s: 2.0
+    action_cooldown_s: 1.8
+    debug_overlay: true
+    publish_debug_image: true
+    timing_log_interval_frames: 30
+
+person_tracker:
+  ros__parameters:
+    # 输入：手势检测事件；有效的 WAVE 或 COME 会启动一次目标融合。
+    gesture_topic: /emo_robot/perception/gesture_detection
+    # 输入：LiDAR 目标检测结果，提供前向距离、横向偏移和方向角。
+    lidar_target_topic: /emo_robot/perception/lidar_target
+    # 输出：融合后的手势发起者目标，供 approach_controller 使用。
+    target_topic: /emo_robot/perception/person_target
+    # LiDAR age 上限，单位：s；最后一帧超过该时间即释放目标。
+    lidar_timeout_s: 1.0
+    # 手势事件与有效 LiDAR 目标允许的最大接收时间差，单位：s。
+    trigger_match_window_s: 2.0
+    # 从 WAVE/COME 触发开始的单次目标会话最长时间，单位：s；不会随更新延长。
+    tracking_session_timeout_s: 20.0
+    # 目标已绑定后，LiDAR 因机器人转向/抖动短暂丢失时，允许在该时间内重新捕获。
+    reacquire_timeout_s: 3.0
+    # LiDAR 跟踪后允许较弱但连续的人体簇进入融合链路。
+    min_target_points: 30
+    # 相邻两帧前向距离允许的最大变化，单位：m；超出时认为目标发生跳变。
+    max_forward_jump_m: 1.5
+    # 相邻两帧横向偏移允许的最大变化，单位：m；超出时认为目标发生跳变。
+    max_lateral_jump_m: 1.5
+
+approach_controller:
+  ros__parameters:
+    # 安全开关：false 时只计算并发布调试 Twist，不注册 AimDK 输入源。
+    motion_enabled: true
+    # 真机运动时必须显式改为 true，并将 confirmation 设为 I_UNDERSTAND。
+    confirmation: "I_UNDERSTAND"
+    target_topic: /emo_robot/perception/person_target
+    debug_cmd_topic: /emo_robot/control/approach_cmd_debug
+    # 连续 arrival_frames 帧距离不大于该值时判定到达并停车，单位：m。
+    stop_distance_m: 1.3
+    # APPROACH 阶段的直线前进速度，单位：m/s。
+    forward_velocity: 0.2
+    # ALIGN 阶段的横向对准速度，单位：m/s；ALIGN 阶段不前进。目标横向偏移超过阈值时触发
+    align_lateral_velocity: 0.5
+    # ALIGN 阶段的转向速度，单位：rad/s。
+    align_angular_velocity: 0.5
+    # 横移方向标定：1.0 使用当前方向，方向相反时改为 -1.0。
+    lateral_direction_sign: 1.0
+    # 同时满足 |目标角度| <= 该值（度）和 |横向偏移| <= align_lateral_m，
+    # 并连续保持 align_stable_frames 帧后，才从 ALIGN 切换到 APPROACH。
+    align_angle_deg: 10.0
+    # 进入 APPROACH 允许的最大横向偏移绝对值，单位：m。
+    align_lateral_m: 2.0
+    # ALIGN 达标所需的连续帧数；任一帧不达标会重新计数。
+    align_stable_frames: 1
+    # 单次 ALIGN 最长持续时间，单位：s；超时后本次任务停止。
+    align_timeout_s: 5.0
+    # WAVE 后先按首次 LiDAR 角度原地转向，再等待雷达稳定并重新捕获目标。
+    snapshot_turn_enabled: true
+    # snapshot turn 的最短/最长持续时间，单位：s。
+    snapshot_turn_min_s: 0.2
+    snapshot_turn_max_s: 2.5
+    # snapshot turn 转向方向标定：1.0 使用当前方向，方向相反时改为 -1.0。
+    snapshot_turn_direction_sign: 1.0
+    # 转向后清零速度等待雷达稳定的时间，单位：s。
+    settle_duration_s: 0.6
+    # settle 后等待 PersonTarget 重新变为有效的最长时间，单位：s。
+    reacquire_timeout_s: 3.0
+    # true 时，重捕获/对准后保存第二次距离快照，并按距离低速直走。
+    blind_approach_enabled: false
+    # APPROACH 中超过任一阈值时先清零速度，再返回 ALIGN。
+    realign_angle_deg: 30.0
+    realign_lateral_m: 20.0
+    # 目标角度绝对值超过该安全上限（度）时立即停止本次任务。
+    max_target_angle_deg: 45.0
+    # PersonTarget 超过该时间未更新即视为失效，单位：s。
+    target_timeout_s: 2.0
+    # BLIND_APPROACH 最长前进时间，单位：s；0.2m/s 下最多约前进 7m。
+    max_approach_duration_s: 35.0
+    # 从 WAVE/COME 任务开始计算的总时长上限，单位：s。
+    max_total_duration_s: 45.0
+    # 距离进入 stop_distance_m 后，连续确认多少帧才判定到达。
+    arrival_frames: 3
+
+interaction_responder:
+  ros__parameters:
+    motion_enabled: false
+    gesture_topic: /emo_robot/perception/gesture_detection
+    wave_tts_text: "你好，你在向我招手吗？"
+    come_tts_text: "你好，你是在叫我过去吗？"
+    tts_domain: emo_robot
+    motion_area: 2
+    motion_id: 1002
+    response_cooldown_s: 3.0

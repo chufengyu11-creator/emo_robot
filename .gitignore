@@ -1,0 +1,24 @@
+build/
+install/
+log/
+data/lidar_bags/
+data/approach_logs/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+.vscode/
+.idea/
+
+models/*.onnx
+src/emo_robot_perception/models/*.onnx
+models/*.engine
+models/*.pt
+models/*.pth
+!models/README.md
+
+# Perception model weights
+src/emo_robot_perception/models/*.pt
+src/emo_robot_perception/models/*.onnx

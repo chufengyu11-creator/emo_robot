@@ -1,0 +1,9 @@
+locomotion_test:
+  ros__parameters:
+    # Safe defaults: no service registration and no velocity publication.
+    motion_enabled: false
+    confirmation: ""
+    forward_velocity: 0.0
+    lateral_velocity: 0.0
+    angular_velocity: 0.0
+    duration_s: 2.0

@@ -1,0 +1,55 @@
+language_planner:
+  ros__parameters:
+    # tcp_llm is the primary path; demo remains available as a fallback.
+    backend: tcp_llm
+    input_topic: /emo_robot/agent/text_input
+    plan_topic: /emo_robot/agent/skill_plan
+    llm_host: 10.0.1.99
+    llm_port: 18766
+    llm_timeout_s: 15.0
+    offline_fallback_enabled: false
+
+agent:
+  ros__parameters:
+    # Preset motions stay simulated by default; no AimDK motion client.
+    motion_mode: simulation
+    # LLM speech_text is played through the real X2 TTS by default.
+    tts_mode: real
+    plan_topic: /emo_robot/agent/skill_plan
+    status_topic: /emo_robot/agent/status
+    # Used only when motion_mode is real.
+    motion_enabled: false
+    # Real preset motion additionally requires this exact acknowledgement.
+    confirmation: ""
+    # AimDK accepts a preset request but exposes no task-completion query.
+    # These conservative delays serialize real motions; calibrate on the robot.
+    motion_wait_wave_right_s: 4.0
+    motion_wait_wave_left_s: 4.0
+    motion_wait_handshake_right_s: 6.0
+    motion_wait_handshake_left_s: 6.0
+    motion_wait_raise_hand_right_s: 4.0
+    motion_wait_raise_hand_left_s: 4.0
+    motion_wait_flying_kiss_right_s: 4.0
+    motion_wait_flying_kiss_left_s: 4.0
+    motion_wait_bow_s: 5.0
+    motion_wait_clap_s: 5.0
+    motion_wait_hug_s: 6.0
+    motion_wait_salute_right_s: 4.0
+    motion_wait_salute_left_s: 4.0
+    motion_wait_heart_both_s: 5.0
+    motion_wait_heart_right_s: 5.0
+    motion_wait_heart_left_s: 5.0
+    motion_wait_cheer_s: 5.0
+    motion_wait_bye_s: 5.0
+    motion_wait_flat_raise_both_s: 4.0
+    motion_wait_flat_raise_right_s: 4.0
+    motion_wait_flat_raise_left_s: 4.0
+    motion_wait_dynamic_wave_s: 5.0
+    motion_wait_high_five_right_s: 5.0
+    motion_wait_high_five_left_s: 5.0
+    motion_wait_cross_arms_s: 5.0
+    motion_wait_chest_wave_right_s: 4.0
+    motion_wait_chest_wave_left_s: 4.0
+    motion_wait_scratch_head_s: 5.0
+    motion_wait_scratch_butt_s: 5.0
+    tts_domain: emo_robot
